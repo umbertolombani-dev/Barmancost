@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>ChefCost Bar Pro Ultimate</title>
+    <style>
+        :root {
+            --bg-app: #090d16;
+            --bg-surface: #151c2c;
+            --bg-card: #1e2738;
+            --bg-input: #2a354b;
+            --primary: #10b981;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #2e3a52;
+            --danger: #ef4444;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg-app); color: var(--text-primary); padding: 16px; padding-bottom: 90px; }
+        
+        .page-content { display: none; }
+        .page-content.active { display: block; }
+
+        .card { background: var(--bg-card); padding: 16px; border-radius: 12px; margin-bottom: 16px; border: 1px solid var(--border); }
+        h2 { color: var(--primary); margin-top: 0; font-size: 1.2rem; margin-bottom: 12px; }
+        label { display: block; font-size: 0.75rem; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 4px; margin-top: 10px; font-weight: bold; }
+        input, select { width: 100%; height: 44px; padding: 0 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: #fff; font-size: 1rem; box-sizing: border-box; outline: none; }
+        input:focus, select:focus { border-color: var(--primary); }
+        
+        .btn { width: 100%; height: 44px; background: var(--primary); color: #fff; border: none; border-radius: 8px; font-weight: bold; font-size: 0.95rem; cursor: pointer; margin-top: 12px; }
+        .btn-sm { height: 36px; font-size: 0.85rem; width: auto; padding: 0 12px; background: #3b82f6; }
+        .btn-danger { background: var(--danger); width: auto; height: 32px; padding: 0 8px; font-size: 0.8rem; margin-top: 0; color: #fff; border: none; border-radius: 6px; cursor: pointer; }
+        
+        .ingredient-row { background: var(--bg-surface); padding: 10px; border-radius: 8px; margin-top: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
+        
+        .result { background: var(--bg-surface); padding: 16px; border-radius: 8px; margin-top: 16px; border: 1px solid var(--border); }
+        .result-row { display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.95rem; }
+        .result-total { font-size: 1.2rem; font-weight: bold; color: var(--primary); border-top: 1px solid var(--border); padding-top: 8px; margin-top: 8px; }
+
+        .search-container { position: relative; }
+        .search-dropdown {
+            position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+            background: var(--bg-surface); border: 1px solid var(--border);
+            border-radius: 8px; max-height: 200px; overflow-y: auto; display: none;
+            margin-top: 4px; box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+        }
+        .search-item { padding: 10px 12px; font-size: 0.9rem; cursor: pointer; border-bottom: 1px solid var(--border); color: #fff; }
+        .search-item:hover { background: rgba(16, 185, 129, 0.2); color: var(--primary); }
+
+        .nav-bar {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            background: rgba(15, 23, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            padding: 8px 16px; z-index: 1000;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            color: var(--text-secondary); font-size: 0.75rem; font-weight: bold; text-transform: uppercase;
+            background: none; border: none; cursor: pointer; padding: 8px 0;
+        }
+        .nav-item.active { color: var(--primary); }
+    </style>
+</head>
+<body>
+
+    <!-- SCHERMATA 1: CALCOLO E CREAZIONE -->
+    <div id="page-calc" class="page-content active">
+        <div class="card">
+            <h2>Crea & Personalizza Cocktail</h2>
+            
+            <!-- RICERCA COCKTAIL -->
+            <div class="search-container" style="margin-bottom: 12px;">
+                <label>Nome Cocktail (Tocca per la lista o scrivi)</label>
+                <input type="text" id="recipeName" placeholder="es. Cosmopolitan, Manhattan, Spritz..." 
+                       onfocus="showAllCocktails()" 
+                       onclick="showAllCocktails()" 
+                       oninput="filterCocktails(this.value)" 
+                       autocomplete="off">
+                <div id="cocktailDropdown" class="search-dropdown"></div>
+            </div>
+
+            <!-- RICERCA INGREDIENTI -->
+            <div style="background: var(--bg-surface); padding: 12px; border-radius: 8px; margin-top: 12px; border: 1px dashed var(--border);">
+                <label style="margin-top:0;">Ingrediente / Succo / Sciroppo (Tocca per la lista)</label>
+                <div class="search-container" style="margin-bottom: 8px;">
+                    <input type="text" id="ingSearch" placeholder="es. Vodka, Succo Ananas, Sciroppo Fragola..." 
+                           onfocus="showAllIngredients()" 
+                           onclick="showAllIngredients()" 
+                           oninput="filterIngredients(this.value)" 
+                           autocomplete="off">
+                    <div id="ingDropdown" class="search-dropdown"></div>
+                </div>
+
+                <div style="display: flex; gap: 8px; margin-top: 8px;">
+                    <div style="flex:1;">
+                        <label>Prezzo Bott./Confez. (€)</label>
+                        <input type="number" id="bottlePrice" step="0.01" value="24.00" oninput="calculate()">
+                    </div>
+                    <div style="flex:1;">
+                        <label>Capacità Confez. (cl o pz)</label>
+                        <input type="number" id="bottleQty" value="100" oninput="calculate()">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 8px; align-items: flex-end; margin-top: 8px;">
+                    <div style="flex:1;">
+                        <label>Qtà Usata nel Drink (cl o pz)</label>
+                        <input type="number" id="usedAmount" step="0.5" value="5" oninput="calculate()">
+                    </div>
+                    <button class="btn btn-sm" onclick="addSelectedIngredient()">+ Inserisci</button>
+                </div>
+            </div>
+
+            <label>Ingredienti e Costi Inseriti:</label>
+            <div id="ingredientsList">
+                <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 8px;">Nessun ingrediente aggiunto</p>
+            </div>
+
+            <!-- COSTI FISSI -->
+            <div style="display: flex; gap: 8px; margin-top: 12px;">
+                <div style="flex:1;">
+                    <label>Energia / Frigo (€)</label>
+                    <input type="number" id="costEnergy" step="0.01" value="0.05" oninput="calculate()">
+                </div>
+                <div style="flex:1;">
+                    <label>Spesa Personale (€)</label>
+                    <input type="number" id="costStaff" step="0.01" value="0.30" oninput="calculate()">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 8px;">
+                <div style="flex:1;">
+                    <label>IVA (%)</label>
+                    <input type="number" id="vatRate" value="22" oninput="calculate()">
+                </div>
+                <div style="flex:1;">
+                    <label>Moltiplicatore Totale</label>
+                    <input type="number" id="multiplier" step="0.1" value="4" oninput="calculate()">
+                </div>
+            </div>
+
+            <!-- RISULTATO FINALE -->
+            <div class="result" id="resultBox">
+                <div class="result-row"><span>Costo Materie Prime:</span> <span id="resIngCost">€0.00</span></div>
+                <div class="result-row"><span>Costo Industriale Totale:</span> <span id="resTotalCost">€0.00</span></div>
+                <div class="result-total">Prezzo di Vendita (IVATO): <span id="resPriceFinal">€0.00</span></div>
+            </div>
+
+            <button class="btn" style="margin-top: 16px;" onclick="saveRecipe()">Salva nel Listino</button>
+        </div>
+    </div>
+
+    <!-- SCHERMATA 2: LISTINO SALVATO -->
+    <div id="page-saved" class="page-content">
+        <div class="card">
+            <h2>Listino Cocktail Salvati</h2>
+            <div id="savedRecipesList">
+                <p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 12px;">Nessun cocktail salvato</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- BARRA NAVIGAZIONE -->
+    <nav class="nav-bar">
+        <button class="nav-item active" onclick="switchPage('calc', this)">Calcolatore</button>
+        <button class="nav-item" onclick="switchPage('saved', this)">Listino Salvati</button>
+    </nav>
+
+    <script>
+        let recipeIngredients = [];
+        let savedRecipes = [];
+        try {
+            savedRecipes = JSON.parse(localStorage.getItem('cc_saved_recipes')) || [];
+        } catch(e) {
+            savedRecipes = [];
+        }
+
+        let selectedIngData = { name: "Gin Premium", price: 24.00, qty: 100 };
+
+        const ingredientsDb = [
+            { name: "Gin Premium", price: 24.00, qty: 100 },
+            { name: "Gin Standard", price: 16.00, qty: 100 },
+            { name: "Vodka Premium", price: 22.00, qty: 100 },
+            { name: "Vodka Standard", price: 14.00, qty: 100 },
+            { name: "Rum Bianco", price: 16.00, qty: 100 },
+            { name: "Rum Scuro", price: 24.00, qty: 100 },
+            { name: "Tequila Blanco", price: 22.00, qty: 100 },
+            { name: "Whiskey Bourbon", price: 26.00, qty: 100 },
+            { name: "Vermouth Rosso", price: 12.00, qty: 100 },
+            { name: "Vermouth Dry", price: 12.00, qty: 100 },
+            { name: "Bitter Campari / Aperol", price: 18.00, qty: 100 },
+            { name: "Triple Sec / Cointreau", price: 20.00, qty: 100 },
+            { name: "Liquore Coffe / Kahlua", price: 16.00, qty: 100 },
+            { name: "Liquore Vov Uovo", price: 15.00, qty: 70 },
+            { name: "Whisky Cream Baileys", price: 18.00, qty: 70 },
+            { name: "Prosecco DOC", price: 5.50, qty: 75 },
+            { name: "Vino Bianco / Rosso", price: 5.00, qty: 75 },
+            { name: "Acqua Tonica", price: 0.70, qty: 1 },
+            { name: "Ginger Beer", price: 1.20, qty: 1 },
+            { name: "Selz / Acqua Frizzante", price: 1.50, qty: 100 },
+            { name: "Coca Cola", price: 0.65, qty: 1 },
+            { name: "Succo di Lime / Limone", price: 3.50, qty: 100 },
+            { name: "Succo di Ananas", price: 2.20, qty: 100 },
+            { name: "Succo di Cranberry", price: 2.80, qty: 100 },
+            { name: "Succo di Arancia", price: 2.00, qty: 100 },
+            { name: "Succo di Pompelmo Rosa", price: 2.40, qty: 100 },
+            { name: "Succo di Pesca", price: 2.10, qty: 100 },
+            { name: "Succo di Pera", price: 2.10, qty: 100 },
+            { name: "Succo ACE", price: 2.00, qty: 100 },
+            { name: "Succo Mela Verde", price: 2.30, qty: 100 },
+            { name: "Succo Maracuja Passion", price: 4.50, qty: 100 },
+            { name: "Succo di Pomodoro", price: 2.50, qty: 100 },
+            { name: "Sciroppo di Zucchero", price: 1.20, qty: 100 },
+            { name: "Sciroppo Orzata Mandorla", price: 2.50, qty: 100 },
+            { name: "Sciroppo Granatina", price: 2.30, qty: 100 },
+            { name: "Sciroppo Fragola", price: 2.80, qty: 100 },
+            { name: "Sciroppo Menta", price: 2.20, qty: 100 },
+            { name: "Sciroppo Vaniglia", price: 2.90, qty: 100 },
+            { name: "Sciroppo Passion Fruit", price: 3.20, qty: 100 },
+            { name: "Sciroppo Crema Cocco", price: 3.80, qty: 100 },
+            { name: "Panna Fresca", price: 4.00, qty: 100 },
+            { name: "Caffè Espresso", price: 0.30, qty: 1 },
+            { name: "Ghiaccio Alimentare", price: 0.08, qty: 1 },
+            { name: "Guarnizione Frutta / Menta", price: 0.05, qty: 1 }
+        ];
+
+        const cocktailPresets = [
+            { name: "Cosmopolitan", items: [
+                {name:"Vodka Standard", price:14, qty:100, used:4}, 
+                {name:"Triple Sec / Cointreau", price:20, qty:100, used:1.5}, 
+                {name:"Succo di Cranberry", price:2.8, qty:100, used:3}, 
+                {name:"Succo di Lime / Limone", price:3.5, qty:100, used:1.5}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}
+            ]},
+            { name: "Manhattan", items: [
+                {name:"Whiskey Bourbon", price:26, qty:100, used:5}, 
+                {name:"Vermouth Rosso", price:12, qty:100, used:2}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}
+            ]},
+            { name: "Piña Colada", items: [
+                {name:"Rum Bianco", price:16, qty:100, used:5}, 
+                {name:"Succo di Ananas", price:2.2, qty:100, used:9}, 
+                {name:"Sciroppo Crema Cocco", price:3.8, qty:100, used:3}, 
+                {name:"Succo di Lime / Limone", price:3.5, qty:100, used:1}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}
+            ]},
+            { name: "Black Russian", items: [
+                {name:"Vodka Standard", price:14, qty:100, used:5},
+                {name:"Liquore Coffe / Kahlua", price:16, qty:100, used:2},
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}
+            ]},
+            { name: "White Russian", items: [
+                {name:"Vodka Standard", price:14, qty:100, used:5},
+                {name:"Liquore Coffe / Kahlua", price:16, qty:100, used:2},
+                {name:"Panna Fresca", price:4, qty:100, used:3},
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}
+            ]},
+            { name: "Bombardino", items: [
+                {name:"Liquore Vov Uovo", price:15, qty:70, used:6},
+                {name:"Whiskey Bourbon", price:26, qty:100, used:2},
+                {name:"Panna Fresca", price:4, qty:100, used:3}
+            ]},
+            { name: "Espresso Martini", items: [
+                {name:"Vodka Standard", price:14, qty:100, used:5}, 
+                {name:"Liquore Coffe / Kahlua", price:16, qty:100, used:3}, 
+                {name:"Caffè Espresso", price:0.3, qty:1, used:1}, 
+                {name:"Sciroppo di Zucchero", price:1.2, qty:100, used:1}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}
+            ]},
+            { name: "Gin Tonic", items: [
+                {name:"Gin Premium", price:24, qty:100, used:5}, 
+                {name:"Acqua Tonica", price:0.7, qty:1, used:1}, 
+                {name:"Selz / Acqua Frizzante", price:1.5, qty:100, used:5}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1}, 
+                {name:"Guarnizione Frutta / Menta", price:0.05, qty:1, used:1}
+            ]},
+            { name: "Negroni", items: [
+                {name:"Gin Premium", price:24, qty:100, used:3}, 
+                {name:"Vermouth Rosso", price:12, qty:100, used:3}, 
+                {name:"Bitter Campari / Aperol", price:18, qty:100, used:3}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1},
+                {name:"Guarnizione Frutta / Menta", price:0.05, qty:1, used:1}
+            ]},
+            { name: "Spritz Aperol / Campari", items: [
+                {name:"Prosecco DOC", price:5.5, qty:75, used:9}, 
+                {name:"Bitter Campari / Aperol", price:18, qty:100, used:6}, 
+                {name:"Selz / Acqua Frizzante", price:1.5, qty:100, used:3}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1},
+                {name:"Guarnizione Frutta / Menta", price:0.05, qty:1, used:1}
+            ]},
+            { name: "Moscow Mule", items: [
+                {name:"Vodka Standard", price:14, qty:100, used:5}, 
+                {name:"Ginger Beer", price:1.2, qty:1, used:1}, 
+                {name:"Succo di Lime / Limone", price:3.5, qty:100, used:2}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1},
+                {name:"Guarnizione Frutta / Menta", price:0.05, qty:1, used:1}
+            ]},
+            { name: "Mojito", items: [
+                {name:"Rum Bianco", price:16, qty:100, used:5}, 
+                {name:"Succo di Lime / Limone", price:3.5, qty:100, used:3}, 
+                {name:"Sciroppo di Zucchero", price:1.2, qty:100, used:2}, 
+                {name:"Selz / Acqua Frizzante", price:1.5, qty:100, used:6}, 
+                {name:"Ghiaccio Alimentare", price:0.08, qty:1, used:1},
+                {name:"Guarnizione Frutta / Menta", price:0.05, qty:1, used:1}
+            ]}
+        ];
+
+        function switchPage(pageId, btn) {
+            document.querySelectorAll('.page-content').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            btn.classList.add('active');
+            if(pageId === 'saved') renderSavedRecipes();
+        }
+
+        // --- GESTIONE TENDINE COCKTAIL ---
+        function showAllCocktails() {
+            document.getElementById('ingDropdown').style.display = 'none';
+            renderCocktailList(cocktailPresets);
+        }
+
+        function filterCocktails(query) {
+            let filtered = cocktailPresets.filter(c => c.name.toLowerCase().includes(query.toLowerCase()));
+            renderCocktailList(filtered);
+        }
+
+        function renderCocktailList(list) {
+            let dropdown = document.getElementById('cocktailDropdown');
+            if (list.length === 0) { dropdown.style.display = 'none'; return; }
+            dropdown.innerHTML = list.map(c => `
+                <div class="search-item" onmousedown="selectCocktail('${c.name}')">
+                    <strong>${c.name}</strong>
+                </div>
+            `).join('');
+            dropdown.style.display = 'block';
+        }
+
+        function selectCocktail(name) {
+            document.getElementById('recipeName').value = name;
+            document.getElementById('cocktailDropdown').style.display = 'none';
+            let preset = cocktailPresets.find(c => c.name === name);
+            if(!preset) return;
+
+            recipeIngredients = [];
+            preset.items.forEach(item => {
+                let unitCost = (item.price / item.qty) * item.used;
+                recipeIngredients.push({ name: item.name, price: item.price, qty: item.qty, used: item.used, cost: unitCost });
+            });
+            renderIngredients();
+            calculate();
+        }
+
+        // --- GESTIONE TENDINE INGREDIENTI ---
+        function showAllIngredients() {
+            document.getElementById('cocktailDropdown').style.display = 'none';
+            renderIngredientList(ingredientsDb);
+        }
+
+        function filterIngredients(query) {
+            let filtered = ingredientsDb.filter(i => i.name.toLowerCase().includes(query.toLowerCase()));
+            renderIngredientList(filtered);
+        }
+
+        function renderIngredientList(list) {
+            let dropdown = document.getElementById('ingDropdown');
+            if (list.length === 0) { dropdown.style.display = 'none'; return; }
+            dropdown.innerHTML = list.map(i => `
+                <div class="search-item" onmousedown="selectIngredientData('${i.name}', ${i.price}, ${i.qty})">
+                    ${i.name} — €${i.price.toFixed(2)} / ${i.qty}cl
+                </div>
+            `).join('');
+            dropdown.style.display = 'block';
+        }
+
+        function selectIngredientData(name, price, qty) {
+            selectedIngData = { name, price, qty };
+            document.getElementById('ingSearch').value = name;
+            document.getElementById('bottlePrice').value = price;
+            document.getElementById('bottleQty').value = qty;
+            document.getElementById('ingDropdown').style.display = 'none';
+            calculate();
+        }
+
+        // Chiusura al click esterno
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-container')) {
+                document.getElementById('cocktailDropdown').style.display = 'none';
+                document.getElementById('ingDropdown').style.display = 'none';
+            }
+        });
+
+        function addSelectedIngredient() {
+            let name = document.getElementById('ingSearch').value.trim() || selectedIngData.name;
+            let price = parseFloat(document.getElementById('bottlePrice').value) || 0;
+            let qty = parseFloat(document.getElementById('bottleQty').value) || 1;
+            let used = parseFloat(document.getElementById('usedAmount').value) || 0;
+
+            if(price <= 0 || qty <= 0 || used <= 0) {
+                alert('Inserisci quantità e prezzi validi');
+                return;
+            }
+
+            let unitCost = (price / qty) * used;
+            recipeIngredients.push({ name, price, qty, used, cost: unitCost });
+
+            document.getElementById('ingSearch').value = '';
+            renderIngredients();
+            calculate();
+        }
+
+        function removeIngredient(index) {
+            recipeIngredients.splice(index, 1);
+            renderIngredients();
+            calculate();
+        }
+
+        function renderIngredients() {
+            let container = document.getElementById('ingredientsList');
+            if(recipeIngredients.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 8px;">Nessun ingrediente aggiunto</p>';
+                return;
+            }
+            container.innerHTML = recipeIngredients.map((item, idx) => `
+                <div class="ingredient-row">
+                    <div>
+                        <strong>${item.name}</strong> (${item.used} cl/pz)<br>
+                        <small style="color: var(--text-secondary);">Costo: €${item.cost.toFixed(2)} (Bott.: €${item.price}/${item.qty}cl)</small>
+                    </div>
+                    <button class="btn-danger" onclick="removeIngredient(${idx})">Elimina</button>
+                </div>
+            `).join('');
+        }
+
+        function calculate() {
+            let ingCost = recipeIngredients.reduce((sum, item) => sum + item.cost, 0);
+            let energy = parseFloat(document.getElementById('costEnergy').value) || 0;
+            let staff = parseFloat(document.getElementById('costStaff').value) || 0;
+            let vat = parseFloat(document.getElementById('vatRate').value) || 22;
+            let multiplier = parseFloat(document.getElementById('multiplier').value) || 4;
+
+            let totalIndustrialCost = ingCost + energy + staff;
+            let finalPriceExcl = totalIndustrialCost * multiplier;
+            let finalPriceIncl = finalPriceExcl * (1 + vat / 100);
+
+            document.getElementById('resIngCost').innerText = '€' + ingCost.toFixed(2);
+            document.getElementById('resTotalCost').innerText = '€' + totalIndustrialCost.toFixed(2);
+            document.getElementById('resPriceFinal').innerText = '€' + finalPriceIncl.toFixed(2);
+
+            return { ingCost, totalIndustrialCost, finalPriceIncl };
+        }
+
+        function saveRecipe() {
+            let name = document.getElementById('recipeName').value.trim();
+            if(!name || recipeIngredients.length === 0) {
+                alert('Inserisci il nome del cocktail e almeno un ingrediente');
+                return;
+            }
+
+            let calcData = calculate();
+            savedRecipes.push({
+                name: name,
+                cost: calcData.totalIndustrialCost,
+                price: calcData.finalPriceIncl,
+                items: [...recipeIngredients]
+            });
+
+            try {
+                localStorage.setItem('cc_saved_recipes', JSON.stringify(savedRecipes));
+            } catch(e) {}
+            
+            alert('Cocktail salvato nel listino con successo!');
+            
+            document.getElementById('recipeName').value = '';
+            recipeIngredients = [];
+            renderIngredients();
+            calculate();
+        }
+
+        function renderSavedRecipes() {
+            let container = document.getElementById('savedRecipesList');
+            if(savedRecipes.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 12px;">Nessun cocktail salvato</p>';
+                return;
+            }
+            container.innerHTML = savedRecipes.map((rec, idx) => `
+                <div class="ingredient-row" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+                    <div style="display: flex; width: 100%; justify-content: space-between;">
+                        <strong>${rec.name}</strong>
+                        <button class="btn-danger" onclick="deleteSavedRecipe(${idx})">Elimina</button>
+                    </div>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary);">
+                        Costo Industriale: €${rec.cost.toFixed(2)} | <strong>Prezzo Vendita (IVATO): €${rec.price.toFixed(2)}</strong>
+                    </p>
+                </div>
+            `).join('');
+        }
+
+        function deleteSavedRecipe(idx) {
+            savedRecipes.splice(idx, 1);
+            try {
+                localStorage.setItem('cc_saved_recipes', JSON.stringify(savedRecipes));
+            } catch(e) {}
+            renderSavedRecipes();
+        }
+
+        calculate();
+    </script>
+</body>
+</html>
